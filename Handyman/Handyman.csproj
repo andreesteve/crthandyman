@@ -7,7 +7,7 @@
     <AssemblyName>Handyman</AssemblyName>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>..\CommerceRuntimeHandyman\Key.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>$(HandymanSnk)</AssemblyOriginatorKeyFile>
     <SignAssembly Condition="Exists('$(AssemblyOriginatorKeyFile')">true</SignAssembly>
   </PropertyGroup>
   <ItemGroup>
