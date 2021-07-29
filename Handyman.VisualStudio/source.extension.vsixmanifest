@@ -3,11 +3,11 @@
     <Metadata>
         <Identity Id="CommerceRuntimeHandyman" Version="0.3.0" Language="en-US" Publisher="Andre Esteve" />
         <DisplayName>Commerce Runtime Handyman</DisplayName>
-        <Description xml:space="preserve">Automate your code authoring when working with Microsoft's Dynamics AX Commerce Runtime framework.</Description>
+        <Description xml:space="preserve">Automate your code authoring when working with Microsoft Dynamics 365 Commerce Runtime framework.</Description>
         <MoreInfo>https://github.com/andreesteve/crthandyman</MoreInfo>
-        <License>LICENSE.txt</License>
+        <License>LICENSE</License>
         <GettingStartedGuide>README.html</GettingStartedGuide>
-        <Tags>Commerce Runtime, Dynamics AX, Commerce Runtime, Dynamics 365</Tags>
+        <Tags>Commerce Runtime, Dynamics AX, Dynamics 365 Commerce</Tags>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0, 17.0)" />
