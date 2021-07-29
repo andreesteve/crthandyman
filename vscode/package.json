@@ -19,7 +19,14 @@
 				"command": "commerceruntimehandyman.helloWorld",
 				"title": "Hello World"
 			}
-		]
+		],
+		"menus": {
+			"editor/context": [{
+				"when": "resourceLangId == csharp",
+				"command": "commerceruntimehandyman.helloWorld",
+				"group": "navigation"
+			}]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

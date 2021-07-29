@@ -75,6 +75,11 @@ namespace Handyman.DocumentAnalyzers
                     // get the syntax node that declares them
                     var declaringReference = member.DeclaringSyntaxReferences.FirstOrDefault();
 
+                    if (declaringReference == null)
+                    {
+                        throw new Exception($"{member.Name} has no declaring syntax reference");
+                    }
+
                     IEnumerable<ITypeSymbol> declaredSupportedRequestTypes;
 
                     // WARNING: the declaring member could be in a different syntax tree than the analysis context

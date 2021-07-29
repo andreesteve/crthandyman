@@ -6,3 +6,4 @@ objd/
 packages/
 *.csproj.user
 *.snk
+out/
