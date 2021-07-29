@@ -9,6 +9,7 @@ Please report any issues [here](https://github.com/andreesteve/crthandyman/issue
 Currently supporting:
 
 * Visual Studio 2017 15.1 (26403.7)
+* Visual Studio 2019 16.9 (693.2781)
 
 ## Installation
 
@@ -33,7 +34,7 @@ You can install it:
 ### Generating request-response classes
 
 1. Set a default project in the solution where *request and reponse* classes are to be created in
-by right clicking on the project in the solution explorer and selecting **Commerce Runtime Handyman -> Set as default Request-Response project*** 
+by right clicking on the project in the solution explorer and selecting **Commerce Runtime Handyman -> Set as default Request-Response project***
 
 ![Set default project](docs/imgs/set_default_project.png)
 
@@ -72,7 +73,7 @@ public class GetProductsRequest : IRequest
     public GetProductsRequest(long productId)
     {
         this.ProductId = productId;
-    }    
+    }
 
     /// <summary>
     /// Gets the product id.
@@ -98,7 +99,7 @@ public class GetProductsResponse : IResponse
     {
         this.Product = product;
         this.SomeOtherResponseData = someOtherResponseData;
-    }    
+    }
 
     /// <summary>
     /// Gets the found product.
@@ -120,6 +121,6 @@ You can configure the extension settings at **Tools -> Options -> Commerce Runti
 
 ## Contributing
 
-Please report issues and submit open pull requests [here](https://github.com/andreesteve/crthandyman).
+Contributions are welcomed! Please report issues and submit pull requests [here](https://github.com/andreesteve/crthandyman).
 
 To build and run the extension, you will need to [install Visual Studio SDK](https://msdn.microsoft.com/en-us/library/mt683786.aspx).

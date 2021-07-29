@@ -12,6 +12,7 @@
 <p>Currently supporting:</p>
 <ul>
 <li>Visual Studio 2017 15.1 (26403.7)</li>
+<li>Visual Studio 2019 16.9 (693.2781)</li>
 </ul>
 <h2 id="installation">Installation</h2>
 <p>You can install it:</p>
@@ -67,7 +68,7 @@ public class GetProductsRequest : IRequest
     public GetProductsRequest(long productId)
     {
         this.ProductId = productId;
-    }    
+    }
 
     /// &lt;summary&gt;
     /// Gets the product id.
@@ -90,7 +91,7 @@ public class GetProductsResponse : IResponse
     {
         this.Product = product;
         this.SomeOtherResponseData = someOtherResponseData;
-    }    
+    }
 
     /// &lt;summary&gt;
     /// Gets the found product.
@@ -107,7 +108,7 @@ public class GetProductsResponse : IResponse
 <p>You can configure the extension settings at <strong>Tools -&gt; Options -&gt; Commerce Runtime Handyman</strong></p>
 <p><img src="docs/imgs/options_view.png" alt="Handyman settings" /></p>
 <h2 id="contributing">Contributing</h2>
-<p>Please report issues and submit open pull requests <a href="https://github.com/andreesteve/crthandyman">here</a>.</p>
+<p>Contributions are welcomed! Please report issues and submit pull requests <a href="https://github.com/andreesteve/crthandyman">here</a>.</p>
 <p>To build and run the extension, you will need to <a href="https://msdn.microsoft.com/en-us/library/mt683786.aspx">install Visual Studio SDK</a>.</p>
 
 
