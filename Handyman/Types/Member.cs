@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+﻿using Microsoft.CodeAnalysis;
+using Handyman.Generators;
 
 namespace Handyman.Types
 {
@@ -19,6 +14,13 @@ namespace Handyman.Types
         }
 
         public string Name { get; private set; }
+
+        // TODO extract these styling string outside of this class
+        public string NameCamelCase => StringCasing.ToFirstCharUpper(this.Name);
+        public string NamePascalCase => StringCasing.ToFirstCharLower(this.Name);
+        public string GetSetterDocumentation => $"{(this.CanWrite ? "Gets or sets" : "Gets")} {this.NamePascalCase}.";
+
+        public string TypeToken => this.Type.ToDisplayString();
 
         public ITypeSymbol Type { get; private set; }
 

@@ -22,12 +22,17 @@ namespace Handyman.Types
 
         public string Name { get; set; }
 
-        public IList<Member> Members { get; private set; }        
+        public IList<Member> Members { get; private set; }
 
         public string Documentation { get; private set; }
 
         public string BaseClassName { get; private set; }
 
         public string Namespace { get; set; }
+
+        public bool HasNamespace => !string.IsNullOrWhiteSpace(this.Namespace);
+
+        // TODO extract these styling string outside of this class
+        public string ConstructorArguments => string.Join(", ", this.Members.Select(m => $"{m.TypeToken} {m.NamePascalCase}" ));
     }
 }

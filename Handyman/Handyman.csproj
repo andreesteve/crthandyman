@@ -13,19 +13,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.8.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <!-- <Compile Include="Generators\MemberedTemplate.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>MemberedTemplate.tt</DependentUpon>
-    </Compile> -->
-    <!-- FIXME: templating for dotnetcore -->
-    <Compile Remove="Generators\MemberedTemplate.cs" />
-    <Compile Remove="Generators\MemberedTemplatePartial.cs" />
-    <Content Remove="Generators\MemberedTemplate.tt">
-      <!-- <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>MemberedTemplate.cs</LastGenOutput> -->
-    </Content>
+    <PackageReference Include="Stubble.Core" Version="1.9.3" />
   </ItemGroup>
 </Project>

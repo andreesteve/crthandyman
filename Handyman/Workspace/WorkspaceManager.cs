@@ -47,7 +47,6 @@ namespace Handyman
         public bool CreateOrUpdateRequestHandlerDefinition(RequestHandlerMethodDefinition requestHandler)
         {
             var generator = new MemberedTypeGenerator();
-
             string requestProjectName = this.settings.DefaultRequestProjectName;
 
             Project project = this.GetProjectByNameOrThrow(requestProjectName);

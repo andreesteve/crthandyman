@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Handyman.Types;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editing;
+using Stubble.Core.Builders;
 
 namespace Handyman.Generators
 {
@@ -15,9 +8,43 @@ namespace Handyman.Generators
     {
         public string GenerateSyntax(MemberedBaseType memberedType)
         {
-            // <!-- FIXME: templating for dotnetcore -->
-            throw new NotImplementedException();
-            //return new MemberedTemplate(memberedType).TransformText();
+            var stubble = new StubbleBuilder().Build();
+            const string Template = @"
+{{#HasNamespace}}
+namespace {{ Namespace }}
+{
+{{/HasNamespace}}
+    /// <summary>
+    /// {{ Documentation }}
+    /// </summary>
+    public class {{ Name }} : {{ BaseClassName }}
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref=""{{ Name }}""/> class.
+        /// </summary>
+{{ #Members }}
+        /// <param name=""{{ Name }}"">{{ Documentation }}</param>
+{{ /Members }}
+        public {{ Name }}({{ ConstructorArguments }})
+        {
+{{ #Members }}
+            this.{{ NameCamelCase }} = {{ NamePascalCase }};
+{{ /Members }}
+        }
+
+{{ #Members }}
+        /// <summary>
+        /// {{ GetSetterDocumentation }}
+        /// </summary>
+        public {{ TypeToken }} {{ NameCamelCase }} { get; private set; }
+{{ /Members }}
+    }
+{{#HasNamespace}}
+}
+{{/HasNamespace}}
+";
+
+            return stubble.Render(Template, memberedType);
         }
     }
 }
