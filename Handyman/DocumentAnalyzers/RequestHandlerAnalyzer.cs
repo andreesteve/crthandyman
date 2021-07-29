@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Handyman.Errors;
 using Handyman.Types;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -63,12 +64,13 @@ namespace Handyman.DocumentAnalyzers
             {
                 // found a class, see if it implements request handler interface
                 var classDeclaration = this.context.SemanticModel.GetDeclaredSymbol(classNode, cancellationToken) as ITypeSymbol;
-                bool isRequestHandler = classDeclaration.AllInterfaces.Contains(this.context.CommerceRuntimeReference.IRequestHandlerTypeSymbol);
+                var handlerInterface = TryGetRequestHandlerImplementation(classDeclaration, this.context.CommerceRuntimeReference);
 
-                var supportedRequestHandlerMember = this.context.CommerceRuntimeReference.IRequestHandlerTypeSymbol.GetMembers("SupportedRequestTypes").FirstOrDefault();
-
-                if (isRequestHandler)
+                if (handlerInterface != null)
                 {
+                    // it is a handler
+                    var supportedRequestHandlerMember = handlerInterface.GetMembers("SupportedRequestTypes").FirstOrDefault();
+
                     // now we can check what requests it implements
                     var member = classDeclaration.FindImplementationForInterfaceMember(supportedRequestHandlerMember);
 
@@ -77,7 +79,8 @@ namespace Handyman.DocumentAnalyzers
 
                     if (declaringReference == null)
                     {
-                        throw new Exception($"{member.Name} has no declaring syntax reference");
+                        throw new HandymanErrorException(new Error("RequestHandlerTypeNotSupported", $"{classDeclaration.Name} is a request handler, but I am not sure how to analyze its supported request types."),
+                            new Exception($"{member.Name} has no declaring syntax reference"));
                     }
 
                     IEnumerable<ITypeSymbol> declaredSupportedRequestTypes;
@@ -126,6 +129,14 @@ namespace Handyman.DocumentAnalyzers
                 .Select(n => new Tuple<SyntaxNode, ITypeSymbol>(n, GetRequestTypeFromNode(n, context.SemanticModel, context.CommerceRuntimeReference, cancellationToken)))
                 .Where(n => n.Item2 != null)
                 .Select(n => new TypeLocation() { Location = n.Item1.GetLocation(), SyntaxNode = n.Item1, TypeSymbol = n.Item2 });
+        }
+
+        private static INamedTypeSymbol TryGetRequestHandlerImplementation(ITypeSymbol type, CommerceRuntimeReference runtimeReference)
+        {
+            return type.AllInterfaces
+                .Where(i => i.Equals(runtimeReference.IRequestHandlerTypeSymbol, SymbolEqualityComparer.Default)
+                    || i.Equals(runtimeReference.IRequestHandlerAsyncTypeSymbol, SymbolEqualityComparer.Default))
+                .FirstOrDefault();
         }
 
         private static ITypeSymbol GetRequestTypeFromNode(SyntaxNode n, SemanticModel model, CommerceRuntimeReference reference, CancellationToken cancellationToken = default)

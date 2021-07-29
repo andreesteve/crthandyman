@@ -18,5 +18,10 @@ namespace Handyman.Errors
         }
 
         public Error Error { get; private set; }
+
+        public override string ToString()
+        {
+            return this.Error.ToString();
+        }
     }
 }

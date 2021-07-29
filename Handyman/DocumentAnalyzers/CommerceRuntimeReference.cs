@@ -23,6 +23,8 @@ namespace Handyman
 
         public INamedTypeSymbol IRequestHandlerTypeSymbol { get; set; }
 
+        public INamedTypeSymbol IRequestHandlerAsyncTypeSymbol { get; set; }
+
         /// <summary>
         /// Represents a void response (i.e. no response).
         /// </summary>

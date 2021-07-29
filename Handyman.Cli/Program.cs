@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Handyman.DocumentAnalyzers;
+using Handyman.Errors;
 using Handyman.ProjectAnalyzers;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
@@ -38,21 +39,28 @@ namespace HandymanCmd
                 var textLength = (await syntaxTree.GetTextAsync()).Length;
                 var span = new TextSpan(textLength / 2, 1);
 
-                var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
-                var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree(span);
-
-                // var root = await syntaxTree.GetRootAsync();
-                // root.DescendantNodesAndSelf()
-                //     .Where(n => n is MethodDeclarationSyntax)
-                //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
-
-                if (handler == null)
+                try
                 {
-                    Console.WriteLine("   not a handler");
+                    var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
+                    var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree(span);
+
+                    // var root = await syntaxTree.GetRootAsync();
+                    // root.DescendantNodesAndSelf()
+                    //     .Where(n => n is MethodDeclarationSyntax)
+                    //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
+
+                    if (handler == null)
+                    {
+                        Console.WriteLine("   not a handler");
+                    }
+                    else
+                    {
+                        Console.WriteLine("   IS a handler");
+                    }
                 }
-                else
+                catch (HandymanErrorException exception)
                 {
-                    Console.WriteLine("   IS a handler");
+                    Console.WriteLine("err: " + exception.ToString());
                 }
             }
         }

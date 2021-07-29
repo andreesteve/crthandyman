@@ -20,5 +20,10 @@ namespace Handyman.Errors
         public string Code { get; private set; }
 
         public string Message { get; private set; }
+
+        public override string ToString()
+        {
+            return $"{this.Code}: {this.Message}";
+        }
     }
 }

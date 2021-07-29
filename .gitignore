@@ -7,3 +7,4 @@ packages/
 *.csproj.user
 *.snk
 out/
+.vscode/launch.json

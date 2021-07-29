@@ -41,8 +41,9 @@ namespace Handyman.ProjectAnalyzers
             var requestType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.Messages.Request");
             var responseType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.Messages.Response");
             var requestHandlerInterfaceType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.IRequestHandler");
+            var requestHandlerAsyncInterfaceType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.IRequestHandlerAsync");
 
-            if (requestHandlerInterfaceType == null || requestType == null || responseType == null)
+            if (requestHandlerInterfaceType == null || requestType == null || responseType == null || requestHandlerAsyncInterfaceType == null)
             {
                 throw new HandymanErrorException(new Error("CannotResolveCommerceRuntimeReference", "A reference to the CommerceRuntime couldn't be found. Please make sure the CommerceRuntime is referenced on the project and there are no compilation errors."));
             }
@@ -56,6 +57,7 @@ namespace Handyman.ProjectAnalyzers
                 RequestTypeSymbol = requestType,
                 ResponseTypeSymbol = responseType,
                 IRequestHandlerTypeSymbol = requestHandlerInterfaceType,
+                IRequestHandlerAsyncTypeSymbol = requestHandlerAsyncInterfaceType,
                 VoidResponse = new ResponseType("NullResponse", new Member[0], string.Empty, _namespace)
                 {
                     IsVoidResponse = true,
