@@ -84,15 +84,22 @@ namespace CommerceRuntimeHandyman.AssociateMethodWithRequest
         {
             if (this.CanRun(cancellationToken).Result)
             {
-                var requestHandlerDefinition = new RequestHandlerAnalyzer(this.context).TryGetHandlerDefinition(this.methodSyntax);
+                try
+                {
+                    var requestHandlerDefinition = new RequestHandlerAnalyzer(this.context).TryGetHandlerDefinition(this.methodSyntax);
 
-                if (requestHandlerDefinition == null)
-                {
-                    MessageBox.Show("This method cannot be converted into a request handler.");
+                    if (requestHandlerDefinition == null)
+                    {
+                        MessageBox.Show("This method cannot be converted into a request handler.");
+                    }
+                    else if (!this.workspaceManager.CreateOrUpdateRequestHandlerDefinition(requestHandlerDefinition))
+                    {
+                        MessageBox.Show("Couldn't apply changes to project");
+                    }
                 }
-                else if (!this.workspaceManager.CreateOrUpdateRequestHandlerDefinition(requestHandlerDefinition))
+                catch (Exception exception)
                 {
-                    MessageBox.Show("Couldn't apply changes to project");
+                    MessageBox.Show(exception.ToString());
                 }
             }
         }
