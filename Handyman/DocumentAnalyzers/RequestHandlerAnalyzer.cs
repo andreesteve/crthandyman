@@ -108,7 +108,7 @@ namespace Handyman.DocumentAnalyzers
                         declaredSupportedRequestTypes = SearchDescendantNodesForRequestSymbols(declaringNode, this.context, cancellationToken);
                     }
 
-                    return new RequestHandlerDefinition(classDeclaration, this.context.Document, declaredSupportedRequestTypes);
+                    return new RequestHandlerDefinition(classDeclaration, handlerInterface, this.context.Document, declaredSupportedRequestTypes);
                 }
             }
 
@@ -120,9 +120,9 @@ namespace Handyman.DocumentAnalyzers
             AnalysisContext context,
             CancellationToken cancellationToken = default)
         {
-            var executeInterfaceMethod = context.CommerceRuntimeReference.IRequestHandlerTypeSymbol.GetMembers("Execute").FirstOrDefault();
+            const string ExecuteMethodName = "Execute";
+            var executeInterfaceMethod = requestHandlerDefinition.HandlerInterface.GetMembers(ExecuteMethodName).FirstOrDefault();
             var executeMethod = requestHandlerDefinition.ClassType.FindImplementationForInterfaceMember(executeInterfaceMethod);
-
             var methodDeclarationSyntax = context.SyntaxRoot.FindNode(executeMethod.DeclaringSyntaxReferences.FirstOrDefault().Span);
 
             return methodDeclarationSyntax.DescendantNodes()

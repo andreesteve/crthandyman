@@ -9,9 +9,10 @@ namespace Handyman.Types
     /// <remarks>A request handler may handle one or more request types.</remarks>
     public sealed class RequestHandlerDefinition
     {
-        public RequestHandlerDefinition(ITypeSymbol classType, Document document, IEnumerable<ITypeSymbol> declaredSupportedRequestTypes)
+        public RequestHandlerDefinition(ITypeSymbol classType, ITypeSymbol handlerInterface, Document document, IEnumerable<ITypeSymbol> declaredSupportedRequestTypes)
         {
             this.ClassType = classType;
+            this.HandlerInterface = handlerInterface;
             this.Document = document;
             this.DeclaredSupportedRequestTypes = declaredSupportedRequestTypes;
         }
@@ -20,6 +21,11 @@ namespace Handyman.Types
         /// Gets the type of the class that implements the request handler.
         /// </summary>
         public ITypeSymbol ClassType { get; private set; }
+
+        /// <summary>
+        /// Gets the type of the interface that the request handler implements.
+        /// </summary>
+        public ITypeSymbol HandlerInterface { get; private set; }
 
         /// <summary>
         /// Gets the document that contains this handler definition.
