@@ -13,6 +13,8 @@ namespace Handyman.Comparers
     /// </summary>
     public sealed class ITypeSymbolEqualityComparer : IEqualityComparer<ITypeSymbol>
     {
+        public static readonly ITypeSymbolEqualityComparer Default = new ITypeSymbolEqualityComparer();
+
         public bool Equals(ITypeSymbol x, ITypeSymbol y)
         {
             return x.Equals(y, SymbolEqualityComparer.Default) || x.GetFullyQualifiedName().Equals(y.GetFullyQualifiedName());

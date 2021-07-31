@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Handyman.Comparers;
 using Handyman.Settings;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -35,7 +36,7 @@ namespace Handyman.Types
             return obj is RequestType request
                 && (
                     obj == this
-                    || this.DeclaringType.Equals(request.DeclaringType, SymbolEqualityComparer.Default)
+                    || ITypeSymbolEqualityComparer.Default.Equals(this.DeclaringType, request.DeclaringType)
                 );
         }
 
