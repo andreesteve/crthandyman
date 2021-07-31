@@ -24,10 +24,16 @@ namespace HandymanCmd
 
         private static async Task DoWork(string path)
         {
+            Console.WriteLine($"Creating workspace");
             using var workspace = MSBuildWorkspace.Create();
 
+            Console.WriteLine($"Opening project {path}");
             var project = await workspace.OpenProjectAsync(path);
+
+            Console.WriteLine($"Compiling project");
             var compilation = await project.GetCompilationAsync();
+
+            Console.WriteLine($"Starting analysis");
             var factory = new AnalysisContextFactory();
 
             foreach (var document in project.Documents)
@@ -41,6 +47,11 @@ namespace HandymanCmd
 
                 try
                 {
+                    foreach (var execution in new RequestExecutionAnalyzer(context).FindAll())
+                    {
+                        Console.WriteLine("    " + execution.ToString());
+                    }
+
                     var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
                     var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree(span);
 
@@ -51,7 +62,7 @@ namespace HandymanCmd
 
                     if (handler == null)
                     {
-                        Console.WriteLine("   not a handler");
+                        Console.WriteLine("   NOT a handler");
                     }
                     else
                     {

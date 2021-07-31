@@ -26,25 +26,7 @@ namespace Handyman.DocumentAnalyzers
         {
             // TODO: handle class definition symbol
             SyntaxNode node = this.context.SyntaxRoot.FindToken(tokenPosition).Parent;
-
-            // not always the identifier name syntax node will result in the type info directly (e.g. on a constructor statement, you need the constructor statement itself)
-            // I haven't found out a deterministic way to do this, but it seems intuitive that the type information is not 'too far away' from the identifier
-            TypeInfo info = default;
-            for (int i = 0;
-                i < 3 && node != null && (info = this.context.SemanticModel.GetTypeInfo(node, cancellationToken)).Type == null;
-                node = node.Parent, i++) ;
-
-            if (info.Type == null)
-            {
-                throw new HandymanErrorException(new Error("NotAType", "The selected token is not a type. Make sure you have selected a type and you have no compilation error."));
-            }
-
-            bool isRequest = info.Type.IsDerivedFrom(this.context.CommerceRuntimeReference.RequestTypeSymbol);
-
-            if (!isRequest)
-            {
-                throw new HandymanErrorException(new Error("NotARequestType", $"The selected type '{info.Type.Name}' is not a Request."));
-            }
+            var info = this.GetRequestReferenceOrThrow(node, search: 3, cancellationToken);
 
             var locations = (await SymbolFinder.FindReferencesAsync(info.Type, context.Document.Project.Solution, cancellationToken))
                 // TODO figure out when we need r.Definition.Name == info.Type.Name (HACK!!!)
@@ -59,8 +41,7 @@ namespace Handyman.DocumentAnalyzers
                 var context = await contextFactory.CreateContextFor(l.Document, cancellationToken);
                 var analyzer = new RequestHandlerAnalyzer(context);
                 return analyzer.TryGetRequestHandlerFromSyntaxTree(l.Location.SourceSpan, cancellationToken);
-            })
-                .ToArray();
+            }).ToArray();
 
             await Task.WhenAll(requestHandlersTasks);
 
@@ -88,6 +69,37 @@ namespace Handyman.DocumentAnalyzers
                 ?? new TypeLocation() { Location = requestHandlerAnalysisContext.SyntaxRoot.GetLocation() }; // if not found, default's to handler's location
 
             return location;
+        }
+
+        /// <summary>
+        /// Given a syntax node, tries to figure out the closest token that references a Request. Throws if nothing closeby references a request.
+        /// </summary>
+        /// <param name="node">The node in the syntax tree.</param>
+        /// <param name="search">How many nodes to search around provided node. Default is 0.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The TypeInfo of the referenced request.</returns>
+        internal TypeInfo GetRequestReferenceOrThrow(SyntaxNode node, uint search = 0, CancellationToken cancellationToken = default)
+        {
+            // not always the identifier name syntax node will result in the type info directly (e.g. on a constructor statement, you need the constructor statement itself)
+            // I haven't found out a deterministic way to do this, but it seems intuitive that the type information is not 'too far away' from the identifier
+            TypeInfo info = default;
+            for (int i = 0;
+                i < search && node != null && (info = this.context.SemanticModel.GetTypeInfo(node, cancellationToken)).Type == null;
+                node = node.Parent, i++) ;
+
+            if (info.Type == null)
+            {
+                throw new HandymanErrorException(new Error("NotAType", "The selected token is not a type. Make sure you have selected a type and you have no compilation error."));
+            }
+
+            bool isRequest = info.Type.IsDerivedFrom(this.context.CommerceRuntimeReference.RequestTypeSymbol);
+
+            if (!isRequest)
+            {
+                throw new HandymanErrorException(new Error("NotARequestType", $"The selected type '{info.Type.Name}' is not a Request."));
+            }
+
+            return info;
         }
     }
 }

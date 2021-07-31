@@ -19,5 +19,10 @@ namespace Handyman.Types
             : base(name, baseClassFQN, members, documentation)
         {
         }
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
     }
 }
