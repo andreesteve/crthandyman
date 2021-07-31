@@ -33,7 +33,11 @@ namespace Handyman.Types
         /// <summary>
         /// Gets the syntax declarion for the Execute method of this handler.
         /// </summary>
-        /// <value></value>
         public MethodDeclarationSyntax ExecuteMethodSyntax { get; internal set; }
+
+        /// <summary>
+        /// A collection of request executions used by this handler.
+        /// </summary>
+        public IEnumerable<RequestExecution> RequestExecutions { get; internal set; }
     }
 }

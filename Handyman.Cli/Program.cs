@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Handyman.DocumentAnalyzers;
 using Handyman.Errors;
@@ -18,65 +20,86 @@ namespace HandymanCmd
         static void Main(string[] args)
         {
             string path = args[0];
+            string documentName = args.Skip(1).FirstOrDefault();
             MSBuildLocator.RegisterDefaults();
 
-            DoWork(path).GetAwaiter().GetResult();
+            DoWork(path, documentName).GetAwaiter().GetResult();
         }
 
-        private static async Task DoWork(string path)
+        private static async Task DoWork(string path, string documentName)
         {
-            Console.WriteLine($"Creating workspace");
+            Stopwatch stopWatch = new Stopwatch();
+            Console.Write($"Creating workspace");
+            stopWatch.Restart();
             using var workspace = MSBuildWorkspace.Create();
+            ConsoleWriteLineElapsed(stopWatch);
 
-            Console.WriteLine($"Opening project {path}");
+            Console.Write($"Opening project {path}");
+            stopWatch.Restart();
             var project = await workspace.OpenProjectAsync(path);
+            ConsoleWriteLineElapsed(stopWatch);
 
-            Console.WriteLine($"Compiling project");
+            Console.Write($"Compiling project");
+            stopWatch.Restart();
             var compilation = await project.GetCompilationAsync();
+            ConsoleWriteLineElapsed(stopWatch);
 
             Console.WriteLine($"Starting analysis");
+            stopWatch.Restart();
             var factory = new AnalysisContextFactory();
 
             foreach (var document in project.Documents)
             {
-                Console.WriteLine($"Handling {document.Name}");
-                var context = await factory.CreateContextFor(document);
-
-                try
+                if (string.IsNullOrWhiteSpace(documentName) || Path.GetFileNameWithoutExtension(document.Name).Equals(documentName, StringComparison.OrdinalIgnoreCase))
                 {
-                    var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
-                    var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree();
+                    Console.WriteLine($"Analyzing {document.Name}");
+                    stopWatch.Restart();
+                    var context = await factory.CreateContextFor(document);
 
-                    if (handler == null)
+                    try
                     {
-                        Console.WriteLine("   NOT a handler");
+                        var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
+                        var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree();
+
+                        if (handler == null)
+                        {
+                            Console.WriteLine("    NOT a handler");
+                        }
+                        else
+                        {
+                            Console.WriteLine("    **** IS a handler ****");
+                        }
+
+                        foreach (var execution in handler.RequestExecutions)
+                        {
+                            Console.WriteLine("    " + execution.ToString());
+                        }
+
+                        // var root = await syntaxTree.GetRootAsync();
+                        // root.DescendantNodesAndSelf()
+                        //     .Where(n => n is MethodDeclarationSyntax)
+                        //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
                     }
-                    else
+                    catch (HandymanErrorException exception)
                     {
-                        Console.WriteLine("   **** IS a handler ****");
+                        Console.WriteLine("err: " + exception.ToString());
                     }
-
-                    foreach (var execution in new RequestExecutionAnalyzer(context).FindAll())
+                    finally
                     {
-                        Console.WriteLine("    " + execution.ToString());
+                        Console.Write($"Analysis complete for {document.Name}");
+                        ConsoleWriteLineElapsed(stopWatch);
                     }
-
-                    // var root = await syntaxTree.GetRootAsync();
-                    // root.DescendantNodesAndSelf()
-                    //     .Where(n => n is MethodDeclarationSyntax)
-                    //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
-
-
-                }
-                catch (HandymanErrorException exception)
-                {
-                    Console.WriteLine("err: " + exception.ToString());
                 }
             }
         }
 
         private static async Task GetRequestDependencyTree(RequestHandlerDefinition handler)
         {
+        }
+
+        private static void ConsoleWriteLineElapsed(Stopwatch watch)
+        {
+            Console.WriteLine($"...{Math.Round(watch.Elapsed.TotalMilliseconds)} ms");
         }
     }
 }

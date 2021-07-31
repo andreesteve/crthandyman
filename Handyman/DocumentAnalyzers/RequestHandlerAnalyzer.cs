@@ -196,6 +196,15 @@ namespace Handyman.DocumentAnalyzers
                 var supportedRequests = declaredSupportedRequestTypes.Select(r => requestAnalyzer.ResolveRequestFromDeclaringType(r, cancellationToken))
                     .ToArray();
 
+                // TODO need to figure out how to lazy load some of these steps, because if this is used in an IDE for quick code analysis, the extra metadata calculation will make it sluggish
+                // For each request implementation, find what the requests this implementation depends on
+                IEnumerable<RequestExecution> requestExecutions = null;
+                if (executeMethodSyntax != null)
+                {
+                    // all request executed in the Execute() method of this handler
+                    requestExecutions = new RequestExecutionAnalyzer(this.context).FindAllOnDescendantNodesAndSelf(executeMethodSyntax.Parent);
+                }
+
                 handler = new RequestHandlerDefinition()
                 {
                     ClassType = classDeclaration,
@@ -203,6 +212,7 @@ namespace Handyman.DocumentAnalyzers
                     Document = context.Document,
                     DeclaredSupportedRequestTypes = supportedRequests,
                     ExecuteMethodSyntax = executeMethodSyntax,
+                    RequestExecutions = requestExecutions,
                 };
             }
 

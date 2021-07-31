@@ -26,9 +26,20 @@ namespace Handyman.DocumentAnalyzers
         /// <returns>All instances of request executions, or an empty collection if none found.</returns>
         public IEnumerable<RequestExecution> FindAll(CancellationToken cancellationToken = default)
         {
+            return this.FindAllOnDescendantNodesAndSelf(this.context.SyntaxRoot, cancellationToken);
+        }
+
+        /// <summary>
+        /// Analyzes the document and return all instances of request executions under a specific syntax node.
+        /// </summary>
+        /// <param name="node">The node to search under.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>All instances of request executions, or an empty collection if none found.</returns>
+        public IEnumerable<RequestExecution> FindAllOnDescendantNodesAndSelf(SyntaxNode node, CancellationToken cancellationToken = default)
+        {
             var requestAnalyzer = new RequestResponseTypeAnalyzer(this.context);
             // search in the syntax tree for any method calls in which the methods ends with "Execute"
-            foreach (var methodInvokationNode in this.context.SyntaxRoot.DescendantNodes().OfType<InvocationExpressionSyntax>())
+            foreach (var methodInvokationNode in node.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
             {
                 if (this.context.SemanticModel.GetSymbolInfo(methodInvokationNode, cancellationToken).Symbol is IMethodSymbol methodSymbol
                     && (methodSymbol.Name == "Execute" || methodSymbol.Name == "ExecuteAsync"))
