@@ -77,35 +77,50 @@ namespace Handyman.DocumentAnalyzers
                     // get the syntax node that declares them
                     var declaringReference = member.DeclaringSyntaxReferences.FirstOrDefault();
 
-                    if (declaringReference == null)
-                    {
-                        throw new HandymanErrorException(new Error("RequestHandlerTypeNotSupported", $"{classDeclaration.Name} is a request handler, but I am not sure how to analyze its supported request types."),
-                            new Exception($"{member.Name} has no declaring syntax reference"));
-                    }
-
                     IEnumerable<ITypeSymbol> declaredSupportedRequestTypes;
 
-                    // WARNING: the declaring member could be in a different syntax tree than the analysis context
-                    // this will happen when the property is not declared in the class itself, but on a base class, for example
-                    // we must not use the semantic model or syntax tree from context here
-                    if (declaringReference.SyntaxTree != this.context.SyntaxRoot.SyntaxTree)
+                    if (declaringReference != null)
                     {
-
-                        // supporting handcrafted scenarios
-                        if (classDeclaration?.BaseType?.ConstructedFrom?.ToDisplayString() == "Microsoft.Dynamics.Commerce.Runtime.SingleRequestHandler<TRequest, TResponse>")
+                        // WARNING: the declaring member could be in a different syntax tree than the analysis context
+                        // this will happen when the property is not declared in the class itself, but on a base class, for example
+                        // we must not use the semantic model or syntax tree from context here
+                        if (declaringReference.SyntaxTree != this.context.SyntaxRoot.SyntaxTree)
                         {
-                            declaredSupportedRequestTypes = new[] { classDeclaration.BaseType.TypeArguments.First() };
+                            // supporting handcrafted scenarios
+                            if (this.context.CommerceRuntimeReference.SingleRequestHandlerTypeSymbol.Equals(classDeclaration?.BaseType, SymbolEqualityComparer.Default))
+                            {
+                                declaredSupportedRequestTypes = new[] { classDeclaration.BaseType.TypeArguments.First() };
+                            }
+                            else
+                            {
+                                // scenario not supported
+                                // happens for partial classes
+                                declaredSupportedRequestTypes = Enumerable.Empty<ITypeSymbol>();
+                            }
                         }
                         else
                         {
-                            // scenario not supported
-                            declaredSupportedRequestTypes = Enumerable.Empty<ITypeSymbol>();
+                            var declaringNode = this.context.SyntaxRoot.FindNode(declaringReference.Span);
+                            declaredSupportedRequestTypes = SearchDescendantNodesForRequestSymbols(declaringNode, this.context, cancellationToken);
                         }
                     }
                     else
                     {
-                        var declaringNode = this.context.SyntaxRoot.FindNode(declaringReference.Span);
-                        declaredSupportedRequestTypes = SearchDescendantNodesForRequestSymbols(declaringNode, this.context, cancellationToken);
+                        // declaring reference is null when the reference is not defined in the source code available
+                        // it is a reference in metadata (some other assembly which we do not have code for)
+                        // likely this is one of the standard base classes for handlers in the framework assembly
+                        var baseGenericType = member.ContainingType?.ConstructedFrom;
+                        if (this.context.CommerceRuntimeReference.SingleRequestHandlerTypeSymbol.Equals(baseGenericType, SymbolEqualityComparer.Default)
+                            || this.context.CommerceRuntimeReference.SingleAsyncRequestHandlerTypeSymbol.Equals(baseGenericType, SymbolEqualityComparer.Default)
+                            || this.context.CommerceRuntimeReference.SingleRequestHandlerTypeSymbol.Equals(baseGenericType, SymbolEqualityComparer.Default))
+                        {
+                            declaredSupportedRequestTypes =  new [] { member.ContainingType.TypeArguments.First() };
+                        }
+                        else
+                        {
+                            // no clue
+                            declaredSupportedRequestTypes =  Enumerable.Empty<ITypeSymbol>();
+                        }
                     }
 
                     return new RequestHandlerDefinition(classDeclaration, handlerInterface, this.context.Document, declaredSupportedRequestTypes);

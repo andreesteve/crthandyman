@@ -42,8 +42,12 @@ namespace Handyman.ProjectAnalyzers
             var responseType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.Messages.Response");
             var requestHandlerInterfaceType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.IRequestHandler");
             var requestHandlerAsyncInterfaceType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.IRequestHandlerAsync");
+            var singleAsyncRequestHandlerWithResponseType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.SingleAsyncRequestHandler`2");
+            var singleAsyncRequestHandlerType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.SingleAsyncRequestHandler`1");
+            var singleRequestHandlerType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.SingleRequestHandler`2");
 
-            if (requestHandlerInterfaceType == null || requestType == null || responseType == null || requestHandlerAsyncInterfaceType == null)
+            if (requestHandlerInterfaceType == null || requestType == null || responseType == null || requestHandlerAsyncInterfaceType == null
+                || singleRequestHandlerType == null || singleAsyncRequestHandlerType == null || singleAsyncRequestHandlerWithResponseType == null)
             {
                 throw new HandymanErrorException(new Error("CannotResolveCommerceRuntimeReference", "A reference to the CommerceRuntime couldn't be found. Please make sure the CommerceRuntime is referenced on the project and there are no compilation errors."));
             }
@@ -62,7 +66,10 @@ namespace Handyman.ProjectAnalyzers
                 {
                     IsVoidResponse = true,
                     Namespace = _namespace
-                }
+                },
+                SingleAsyncRequestHandlerWithResponseTypeSymbol = singleAsyncRequestHandlerWithResponseType,
+                SingleAsyncRequestHandlerTypeSymbol = singleAsyncRequestHandlerType,
+                SingleRequestHandlerTypeSymbol = singleRequestHandlerType
             };
 
             ////if (requestType != null)

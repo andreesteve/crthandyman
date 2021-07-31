@@ -13,21 +13,25 @@ namespace Handyman
     /// </summary>
     public sealed class CommerceRuntimeReference
     {
-        public string RequestBaseClassFqn { get; set; }
+        public string RequestBaseClassFqn { get; internal set; }
 
-        public string ResponseBaseClassFqn { get; set; }
+        public string ResponseBaseClassFqn { get; internal set; }
 
-        public INamedTypeSymbol RequestTypeSymbol { get; set; }
+        public INamedTypeSymbol RequestTypeSymbol { get; internal set; }
 
-        public INamedTypeSymbol ResponseTypeSymbol { get; set; }
+        public INamedTypeSymbol ResponseTypeSymbol { get; internal set; }
 
-        public INamedTypeSymbol IRequestHandlerTypeSymbol { get; set; }
+        public INamedTypeSymbol IRequestHandlerTypeSymbol { get; internal set; }
 
-        public INamedTypeSymbol IRequestHandlerAsyncTypeSymbol { get; set; }
+        public INamedTypeSymbol IRequestHandlerAsyncTypeSymbol { get; internal set; }
+
+        public INamedTypeSymbol SingleAsyncRequestHandlerWithResponseTypeSymbol { get; internal set; }
+        public INamedTypeSymbol SingleAsyncRequestHandlerTypeSymbol { get; internal set; }
+        public INamedTypeSymbol SingleRequestHandlerTypeSymbol { get; internal set; }
 
         /// <summary>
         /// Represents a void response (i.e. no response).
         /// </summary>
-        public ResponseType VoidResponse { get; set; }
+        public ResponseType VoidResponse { get; internal set; }
     }
 }
