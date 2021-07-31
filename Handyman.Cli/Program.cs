@@ -20,13 +20,14 @@ namespace HandymanCmd
         static void Main(string[] args)
         {
             string path = args[0];
-            string documentName = args.Skip(1).FirstOrDefault();
+            string projectName = args.Skip(1).FirstOrDefault();
+            string documentName = args.Skip(2).FirstOrDefault();
             MSBuildLocator.RegisterDefaults();
 
-            DoWork(path, documentName).GetAwaiter().GetResult();
+            DoWork(path, projectName, documentName).GetAwaiter().GetResult();
         }
 
-        private static async Task DoWork(string path, string documentName)
+        private static async Task DoWork(string path, string projectName, string documentName)
         {
             Stopwatch stopWatch = new Stopwatch();
             Console.Write($"Creating workspace");
@@ -34,10 +35,33 @@ namespace HandymanCmd
             using var workspace = MSBuildWorkspace.Create();
             ConsoleWriteLineElapsed(stopWatch);
 
-            Console.Write($"Opening project {path}");
-            stopWatch.Restart();
-            var project = await workspace.OpenProjectAsync(path);
-            ConsoleWriteLineElapsed(stopWatch);
+            Project project;
+            if (Path.GetExtension(path) == ".sln")
+            {
+                if (string.IsNullOrWhiteSpace(projectName))
+                {
+                    Console.Error.WriteLine("A project name must be provided when loading a solution.");
+                    return;
+                }
+
+                Console.Write($"Opening solution {path}");
+                stopWatch.Restart();
+                var solution = await workspace.OpenSolutionAsync(path);
+                project = solution.Projects.FirstOrDefault(p => p.Name == projectName);
+                ConsoleWriteLineElapsed(stopWatch);
+            }
+            else
+            {
+                Console.Write($"Opening project {path}");
+                stopWatch.Restart();
+                project = await workspace.OpenProjectAsync(path);
+                ConsoleWriteLineElapsed(stopWatch);
+            }
+            if (project == null)
+            {
+                Console.Error.WriteLine("Project not found.");
+                return;
+            }
 
             Console.Write($"Compiling project");
             stopWatch.Restart();
@@ -59,26 +83,33 @@ namespace HandymanCmd
                     try
                     {
                         var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
+                        var requestResponseTypeAnalyzer = new RequestResponseTypeAnalyzer(context);
                         var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree();
 
+                        Console.Write("    Is RequestHandler? ");
                         if (handler == null)
                         {
-                            Console.WriteLine("    NOT a handler");
+                            Console.WriteLine("NO");
                         }
                         else
                         {
-                            Console.WriteLine("    **** IS a handler ****");
-                        }
+                            Console.WriteLine("YES");
+                            Console.WriteLine("    Implements:");
+                            foreach (var request in handler.DeclaredSupportedRequestTypes)
+                            {
+                                Console.WriteLine($"        * {request}");
+                            }
 
-                        foreach (var execution in handler.RequestExecutions)
-                        {
-                            Console.WriteLine("    " + execution.ToString());
-                        }
+                            Console.WriteLine("    Depends on:");
+                            foreach (var execution in handler.RequestExecutions)
+                            {
+                                Console.WriteLine($"        * {execution}");
 
-                        // var root = await syntaxTree.GetRootAsync();
-                        // root.DescendantNodesAndSelf()
-                        //     .Where(n => n is MethodDeclarationSyntax)
-                        //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
+                                // find handler that implements this request
+                                var requestImplementationLocation = await requestResponseTypeAnalyzer.FindRequestImplementation(factory, execution.Request);
+                                Console.WriteLine($"            |-- implemented by: {requestImplementationLocation?.ToString() ?? "unknown"}");
+                            }
+                        }
                     }
                     catch (HandymanErrorException exception)
                     {
@@ -91,10 +122,6 @@ namespace HandymanCmd
                     }
                 }
             }
-        }
-
-        private static async Task GetRequestDependencyTree(RequestHandlerDefinition handler)
-        {
         }
 
         private static void ConsoleWriteLineElapsed(Stopwatch watch)

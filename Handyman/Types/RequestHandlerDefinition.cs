@@ -13,6 +13,11 @@ namespace Handyman.Types
         /// <summary>
         /// Gets the type of the class that implements the request handler.
         /// </summary>
+        public string Name => this.ClassType.Name;
+
+        /// <summary>
+        /// Gets the type of the class that implements the request handler.
+        /// </summary>
         public ITypeSymbol ClassType { get; internal set; }
 
         /// <summary>
@@ -39,5 +44,10 @@ namespace Handyman.Types
         /// A collection of request executions used by this handler.
         /// </summary>
         public IEnumerable<RequestExecution> RequestExecutions { get; internal set; }
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
     }
 }

@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.FindSymbols;
 using Handyman.Types;
 using Handyman.Errors;
 using Handyman.Comparers;
+using System;
 
 namespace Handyman.DocumentAnalyzers
 {
@@ -28,8 +29,13 @@ namespace Handyman.DocumentAnalyzers
         /// <param name="declaringType">The type that declares the request.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>The request or null if declaring type is not a request.</returns>
-        public RequestType ResolveRequestFromDeclaringType(ITypeSymbol declaringType, CancellationToken cancellationToken = default)
+        public RequestType ResolveRequestFromDeclaringType(ITypeSymbol declaringType)
         {
+            if (declaringType == null)
+            {
+                throw new ArgumentNullException(nameof(declaringType));
+            }
+
             if (!this.context.TypeCache.Requests.TryGetValue(declaringType, out RequestType request))
             {
                 if (declaringType.IsDerivedFrom(this.context.CommerceRuntimeReference.RequestTypeSymbol))
@@ -45,18 +51,30 @@ namespace Handyman.DocumentAnalyzers
             return request;
         }
 
-        public async Task<TypeLocation> FindImplementation(int tokenPosition, CancellationToken cancellationToken = default)
+        public Task<TypeLocation<RequestHandlerDefinition>> FindRequestImplementation(AnalysisContextFactory contextFactory, int tokenPosition, CancellationToken cancellationToken = default)
         {
             // TODO: handle class definition symbol
             SyntaxNode node = this.context.SyntaxRoot.FindToken(tokenPosition).Parent;
-            var info = this.GetRequestReferenceOrThrow(node, search: 3, cancellationToken);
+            var requestType = this.GetRequestReferenceOrThrow(node, search: 3, cancellationToken);
+            return this.FindRequestImplementation(contextFactory, requestType, cancellationToken);
+        }
 
-            var locations = (await SymbolFinder.FindReferencesAsync(info.Type, context.Document.Project.Solution, cancellationToken))
+        /// <summary>
+        /// Given a request type, finds all locations that implement the request type.
+        /// </summary>
+        /// <param name="requestType">The request type to search implementations for.</param>
+        /// <param name="contextFactory">An existing context factory to speed up the search.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The locations where the request is implemented in a request handler.</returns>
+        public async Task<TypeLocation<RequestHandlerDefinition>> FindRequestImplementation(AnalysisContextFactory contextFactory, RequestType requestType, CancellationToken cancellationToken = default)
+        {
+            var locations = (await SymbolFinder.FindReferencesAsync(requestType.DeclaringType, context.Document.Project.Solution, cancellationToken))
                 // TODO figure out when we need r.Definition.Name == info.Type.Name (HACK!!!)
-                .First(r => r.Definition.Equals(info.Type, SymbolEqualityComparer.Default) || r.Definition.Name == info.Type.Name)?.Locations
+                .FirstOrDefault(r => r.Definition.Equals(requestType.DeclaringType, SymbolEqualityComparer.Default) || r.Definition.Name == requestType.DeclaringType.Name)?.Locations
                     ?? Enumerable.Empty<ReferenceLocation>();
 
-            AnalysisContextFactory contextFactory = new AnalysisContextFactory();
+            // creating a new factory will make it very slow as we cannot cache anything
+            contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
 
             // for each location, analyze the code and see if it is a request handler
             var requestHandlersTasks = locations.Select(async l =>
@@ -75,21 +93,23 @@ namespace Handyman.DocumentAnalyzers
             // we can perform some optizations (like filter out locations within same class)
 
             // for each request handler found, see if it implements the request we have
-            var requestHandler = requestHandlers.FirstOrDefault(h => h.DeclaredSupportedRequestTypes.Any(request => request.DeclaringType.Equals(info.Type, SymbolEqualityComparer.Default)));
+            var requestHandler = requestHandlers.FirstOrDefault(h => h.DeclaredSupportedRequestTypes.Any(request => request.Equals(requestType)));
 
             if (requestHandler == null)
             {
-                throw new HandymanErrorException(new Error("NoRequestHandlerFound", $"No request handler was found to implement '{info.Type.Name}'."));
+                // // FIXME: this is unexpected, I think, revisit if we need to throw really
+                // throw new HandymanErrorException(new Error("NoRequestHandlerFound", $"No request handler was found to implement '{requestType}'."));
+                return null;
             }
 
             var requestHandlerAnalysisContext = await contextFactory.CreateContextFor(requestHandler.Document, cancellationToken);
-            var requestLocations = RequestHandlerAnalyzer.FindRequestUseLocations(requestHandler.ExecuteMethodSyntax, requestHandlerAnalysisContext, cancellationToken);
+            var requestLocations = RequestHandlerAnalyzer.FindRequestUseLocations(requestHandler, requestHandler.ExecuteMethodSyntax, requestHandlerAnalysisContext, cancellationToken);
 
             // because requestLocation.TypeSymbol can be on a different compilation than info.Type
             // we cannot compare the objects directly
-            string displayName = info.Type.ToDisplayString();
-            var location = requestLocations.FirstOrDefault(l => l.TypeSymbol.Equals(info.Type, SymbolEqualityComparer.Default) || l.TypeSymbol.ToDisplayString() == displayName)
-                ?? new TypeLocation() { Location = requestHandlerAnalysisContext.SyntaxRoot.GetLocation() }; // if not found, default's to handler's location
+            string displayName = requestType.DeclaringType.ToDisplayString();
+            var location = requestLocations.FirstOrDefault(l => l.TypeSymbol.Equals(requestType.DeclaringType, SymbolEqualityComparer.Default) || l.TypeSymbol.ToDisplayString() == displayName)
+                ?? new TypeLocation<RequestHandlerDefinition>() { ContainingType = requestHandler, Location = requestHandlerAnalysisContext.SyntaxRoot.GetLocation() }; // if not found, default's to handler's location
 
             return location;
         }
@@ -101,7 +121,7 @@ namespace Handyman.DocumentAnalyzers
         /// <param name="search">How many nodes to search around provided node. Default is 0.</param>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>The TypeInfo of the referenced request.</returns>
-        internal TypeInfo GetRequestReferenceOrThrow(SyntaxNode node, uint search = 0, CancellationToken cancellationToken = default)
+        private RequestType GetRequestReferenceOrThrow(SyntaxNode node, uint search = 0, CancellationToken cancellationToken = default)
         {
             // not always the identifier name syntax node will result in the type info directly (e.g. on a constructor statement, you need the constructor statement itself)
             // I haven't found out a deterministic way to do this, but it seems intuitive that the type information is not 'too far away' from the identifier
@@ -115,14 +135,14 @@ namespace Handyman.DocumentAnalyzers
                 throw new HandymanErrorException(new Error("NotAType", "The selected token is not a type. Make sure you have selected a type and you have no compilation error."));
             }
 
-            bool isRequest = info.Type.IsDerivedFrom(this.context.CommerceRuntimeReference.RequestTypeSymbol);
+            var requestType = this.ResolveRequestFromDeclaringType(info.Type);
 
-            if (!isRequest)
+            if (requestType == null)
             {
-                throw new HandymanErrorException(new Error("NotARequestType", $"The selected type '{info.Type.Name}' is not a Request."));
+                throw new HandymanErrorException(new Error("NotARequestType", $"The selected type '{info.Type.Name}' does not implement contract of a Request type."));
             }
 
-            return info;
+            return requestType;
         }
     }
 }

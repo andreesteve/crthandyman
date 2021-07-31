@@ -79,15 +79,16 @@ namespace Handyman.DocumentAnalyzers
         /// <param name="context">The analysis context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A list of all utilizations of a Request type.</returns>
-        internal static IEnumerable<TypeLocation> FindRequestUseLocations(
+        internal static IEnumerable<TypeLocation<TContainer>> FindRequestUseLocations<TContainer>(
+            TContainer container,
             SyntaxNode node,
             AnalysisContext context,
             CancellationToken cancellationToken = default)
         {
             return node.DescendantNodes()
-                .Select(n => new Tuple<SyntaxNode, ITypeSymbol>(n, GetRequestTypeFromNode(n, context.SemanticModel, context.CommerceRuntimeReference, cancellationToken)))
-                .Where(n => n.Item2 != null)
-                .Select(n => new TypeLocation() { Location = n.Item1.GetLocation(), SyntaxNode = n.Item1, TypeSymbol = n.Item2 });
+                .Select(syntaxNode => (syntaxNode, type: GetRequestTypeFromNode(syntaxNode, context.SemanticModel, context.CommerceRuntimeReference, cancellationToken)))
+                .Where(_ => _.type != null)
+                .Select(_ => new TypeLocation<TContainer>() { ContainingType = container, Location = _.syntaxNode.GetLocation(), SyntaxNode = _.syntaxNode, TypeSymbol = _.type });
         }
 
         private RequestHandlerDefinition TryResolveRequestHandlerFromClassDeclaration(ClassDeclarationSyntax classNode, CancellationToken cancellationToken = default)
@@ -193,7 +194,7 @@ namespace Handyman.DocumentAnalyzers
 
                 // try to resolve request types
                 var requestAnalyzer = new RequestResponseTypeAnalyzer(this.context);
-                var supportedRequests = declaredSupportedRequestTypes.Select(r => requestAnalyzer.ResolveRequestFromDeclaringType(r, cancellationToken))
+                var supportedRequests = declaredSupportedRequestTypes.Select(r => requestAnalyzer.ResolveRequestFromDeclaringType(r))
                     .ToArray();
 
                 // TODO need to figure out how to lazy load some of these steps, because if this is used in an IDE for quick code analysis, the extra metadata calculation will make it sluggish

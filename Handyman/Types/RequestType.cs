@@ -19,6 +19,8 @@ namespace Handyman.Types
             // FIXME declaring type is mandatory
             : base(declaringType?.Name, baseClassFQN, members, documentation)
         {
+            // TODO add null check
+            this.DeclaringType = declaringType;
         }
 
         public ITypeSymbol DeclaringType { get; internal set; }
