@@ -120,6 +120,7 @@ namespace Handyman.DocumentAnalyzers
                 var declaringReference = member.DeclaringSyntaxReferences.FirstOrDefault();
 
                 IEnumerable<ITypeSymbol> declaredSupportedRequestTypes;
+                string implementationExecuteMethodName = "Execute";
 
                 if (declaringReference != null)
                 {
@@ -156,6 +157,7 @@ namespace Handyman.DocumentAnalyzers
                         || this.context.CommerceRuntimeReference.SingleAsyncRequestHandlerTypeSymbol.Equals(baseGenericType, SymbolEqualityComparer.Default)
                         || this.context.CommerceRuntimeReference.SingleRequestHandlerTypeSymbol.Equals(baseGenericType, SymbolEqualityComparer.Default))
                     {
+                        implementationExecuteMethodName = "Process";
                         declaredSupportedRequestTypes =  new [] { member.ContainingType.TypeArguments.First() };
                     }
                     else
@@ -166,10 +168,28 @@ namespace Handyman.DocumentAnalyzers
                 }
 
                 // find the implementation of the Execute method
-                const string ExecuteMethodName = "Execute";
-                var executeInterfaceMethod = handlerInterface.GetMembers(ExecuteMethodName).FirstOrDefault();
-                var executeMethod = classDeclaration.FindImplementationForInterfaceMember(executeInterfaceMethod);
-                var executeMethodDeclarationSyntax = context.SyntaxRoot.FindNode(executeMethod.DeclaringSyntaxReferences.FirstOrDefault().Span) as MethodDeclarationSyntax;
+                var executeMethodDeclaration = classDeclaration.GetMembers(implementationExecuteMethodName).FirstOrDefault();
+                var executeMethodSyntaxLocation = executeMethodDeclaration?.DeclaringSyntaxReferences.FirstOrDefault();
+                MethodDeclarationSyntax executeMethodSyntax;
+
+                // test to make sure we found the implementation location, and it is in the same syntax tree we are parsing
+                if (executeMethodSyntaxLocation != null && executeMethodSyntaxLocation.SyntaxTree == this.context.SyntaxRoot.SyntaxTree)
+                {
+                    if (context.SyntaxRoot.FindNode(executeMethodSyntaxLocation.Span) is MethodDeclarationSyntax executeMethodDeclarationSyntax)
+                    {
+                        executeMethodSyntax = executeMethodDeclarationSyntax;
+                    }
+                    else
+                    {
+                        throw new HandymanErrorException(new Error("UnexpectedExecuteMethodImplementation", $"The request handler {classDeclaration.Name} has a unknown syntax node request execution method named '{implementationExecuteMethodName}'. MethodDeclarationSyntax was expected but not found."));
+                    }
+                }
+                else
+                {
+                    // FIXME: unknown case, needs investigation and add support
+                    // also includes partial class case
+                    executeMethodSyntax = null;
+                }
 
                 // try to resolve request types
                 var requestAnalyzer = new RequestResponseTypeAnalyzer(this.context);
@@ -182,7 +202,7 @@ namespace Handyman.DocumentAnalyzers
                     HandlerInterface = handlerInterface,
                     Document = context.Document,
                     DeclaredSupportedRequestTypes = supportedRequests,
-                    ExecuteMethodSyntax = executeMethodDeclarationSyntax,
+                    ExecuteMethodSyntax = executeMethodSyntax,
                 };
             }
 

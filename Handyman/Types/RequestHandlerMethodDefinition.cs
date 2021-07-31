@@ -16,18 +16,18 @@ namespace Handyman.Types
     /// </summary>
     public class RequestHandlerMethodDefinition
     {
-        private readonly IMethodSymbol requestHandlerMethod;
-
         public RequestHandlerMethodDefinition(RequestType requestType, ResponseType responseType, IMethodSymbol requestHandlerMethod)
         {
             this.RequestType = requestType;
             this.ResponseType = responseType;
-            this.requestHandlerMethod = requestHandlerMethod;
+            this.RequestHandlerMethod = requestHandlerMethod;
         }
 
         public RequestType RequestType { get; private set; }
 
         public ResponseType ResponseType { get; private set; }
+
+        public IMethodSymbol RequestHandlerMethod { get; private set; }
 
         /// <summary>
         /// Given any method, tries to extract method parameters as request definition and return type as response definition.
@@ -49,8 +49,10 @@ namespace Handyman.Types
                     .Select(p => CreateMemberFromParameter(p, doc));
 
                 // HACY: method is not the right type
-                var requestType = new RequestType(null, requetMembers, doc.Summary, reference.RequestBaseClassFqn);
-                requestType.Name = method.Name + "Request";
+                var requestType = new RequestType(null, requetMembers, doc.Summary, reference.RequestBaseClassFqn)
+                {
+                    Name = method.Name + "Request"
+                };
 
                 // RESPONSE
                 var responseMembers = method.Parameters
@@ -68,8 +70,10 @@ namespace Handyman.Types
                 ResponseType responseType;
                 if (responseMembers.Any())
                 {
-                    responseType = new ResponseType(null, responseMembers, responseDocumentation, reference.ResponseBaseClassFqn);
-                    responseType.Name = method.Name + "Response";
+                    responseType = new ResponseType(null, responseMembers, responseDocumentation, reference.ResponseBaseClassFqn)
+                    {
+                        Name = method.Name + "Response"
+                    };
                 }
                 else
                 {
