@@ -11,19 +11,26 @@ namespace Handyman.Errors
     /// </summary>
     public class Error
     {
-        public Error(string code, string message)
+        public Error(ErrorCode code, string message)
         {
             this.Code = code;
             this.Message = message;
         }
 
-        public string Code { get; private set; }
+        public ErrorCode Code { get; private set; }
 
         public string Message { get; private set; }
 
-        public override string ToString()
+        public override string ToString() => $"{this.Code}: {this.Message}";
+
+        public enum ErrorCode
         {
-            return $"{this.Code}: {this.Message}";
+            UnexpectedExecuteMethodImplementation,
+            NotAType,
+            NotARequestType,
+            CannotResolveCommerceRuntimeReferenceDueToCompilationError,
+            CannotResolveCommerceRuntimeReference,
+            CannotCreateAnalysisContext,
         }
     }
 }

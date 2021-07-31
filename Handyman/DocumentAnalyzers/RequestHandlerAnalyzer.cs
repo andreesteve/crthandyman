@@ -182,7 +182,7 @@ namespace Handyman.DocumentAnalyzers
                     }
                     else
                     {
-                        throw new HandymanErrorException(new Error("UnexpectedExecuteMethodImplementation", $"The request handler {classDeclaration.Name} has a unknown syntax node request execution method named '{implementationExecuteMethodName}'. MethodDeclarationSyntax was expected but not found."));
+                        throw new HandymanErrorException(new Error(Error.ErrorCode.UnexpectedExecuteMethodImplementation, $"The request handler {classDeclaration.Name} has a unknown syntax node request execution method named '{implementationExecuteMethodName}'. MethodDeclarationSyntax was expected but not found."));
                     }
                 }
                 else

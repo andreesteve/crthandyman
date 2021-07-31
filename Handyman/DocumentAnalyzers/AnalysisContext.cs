@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Handyman.ProjectAnalyzers;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Handyman.DocumentAnalyzers
 {
@@ -24,11 +25,13 @@ namespace Handyman.DocumentAnalyzers
 
         public TypeCache TypeCache { get; set; }
 
-        public static async Task<AnalysisContext> Create(Document document, CancellationToken cancellationToken, TypeCache typeCache, CommerceRuntimeReference reference = null)
+        private ILoggerFactory loggerFactory;
+
+        public static async Task<AnalysisContext> Create(ILoggerFactory loggerFactory, Document document, CancellationToken cancellationToken, TypeCache typeCache, CommerceRuntimeReference reference = null)
         {
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             var syntaxRoot = await semanticModel.SyntaxTree.GetRootAsync(cancellationToken);
-            reference = reference ?? await new CommerceRuntimeReferenceAnalyzer(document.Project).Find(cancellationToken);
+            reference = reference ?? throw new ArgumentNullException(nameof(reference));
 
             return new AnalysisContext()
             {
@@ -36,8 +39,14 @@ namespace Handyman.DocumentAnalyzers
                 SemanticModel = semanticModel,
                 SyntaxRoot = syntaxRoot,
                 CommerceRuntimeReference = reference,
-                TypeCache = typeCache
+                TypeCache = typeCache,
+                loggerFactory = loggerFactory,
             };
+        }
+
+        internal ILogger NewLogger<T>()
+        {
+            return this.loggerFactory.CreateLogger<T>();
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Handyman.Errors;
 using Handyman.Types;
 using Microsoft.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Handyman.ProjectAnalyzers
 {
@@ -16,18 +17,20 @@ namespace Handyman.ProjectAnalyzers
         ////private static CommerceRuntimeReference CachedReference = null;
 
         private readonly Project project;
+        private readonly ILogger logger;
         private Compilation compilation;
 
-        public CommerceRuntimeReferenceAnalyzer(Project project)
+        public CommerceRuntimeReferenceAnalyzer(ILogger logger, Project project)
         {
             this.project = project ?? throw new ArgumentNullException(nameof(project));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
-        /// Tries to find a reference for the commerce runtime.
+        /// Returns a reference for the commerce runtime.
         /// </summary>
         /// <returns>The commerce runtime reference.</returns>
-        public async Task<CommerceRuntimeReference> Find(CancellationToken cancellationToken = default)
+        public async Task<CommerceRuntimeReference> Find(bool throwOnError, CancellationToken cancellationToken = default)
         {
             // TODO: it seems that the types found on different compilations (despite being idential) do not implement Equality
             // this is, CommerceRuntimeReference.RequestTypeSymbol.Equals(a request symbol from another compilation) -> false
@@ -37,7 +40,15 @@ namespace Handyman.ProjectAnalyzers
             ////    return CachedReference;
             ////}
 
+            this.logger.LogTrace("Resolving CommerceRuntimeReference for {project} ({assembly})", this.project.Name, this.project.AssemblyName);
             this.compilation = await this.project.GetCompilationAsync(cancellationToken);
+            bool hasCompilationErrors = compilation.GetDiagnostics().Any(e => e.Severity == DiagnosticSeverity.Error);
+
+            if (hasCompilationErrors)
+            {
+                this.logger.LogWarning("{project} has compilation errors.", project.Name);
+            }
+
             var requestType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.Messages.Request");
             var responseType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.Messages.Response");
             var requestHandlerInterfaceType = this.compilation.GetTypeByMetadataName("Microsoft.Dynamics.Commerce.Runtime.IRequestHandler");
@@ -49,7 +60,21 @@ namespace Handyman.ProjectAnalyzers
             if (requestHandlerInterfaceType == null || requestType == null || responseType == null || requestHandlerAsyncInterfaceType == null
                 || singleRequestHandlerType == null || singleAsyncRequestHandlerType == null || singleAsyncRequestHandlerWithResponseType == null)
             {
-                throw new HandymanErrorException(new Error("CannotResolveCommerceRuntimeReference", "A reference to the CommerceRuntime couldn't be found. Please make sure the CommerceRuntime is referenced on the project and there are no compilation errors."));
+                if (throwOnError)
+                {
+                    if (hasCompilationErrors)
+                    {
+                        throw new HandymanErrorException(new Error(Error.ErrorCode.CannotResolveCommerceRuntimeReferenceDueToCompilationError, $"A reference to the CommerceRuntime could not be resolved because project {project.Name} has compilation errors."));
+                    }
+                    else
+                    {
+                        throw new HandymanErrorException(new Error(Error.ErrorCode.CannotResolveCommerceRuntimeReference, $"A reference to the CommerceRuntime associated with project {project.Name} couldn't be found. Please make sure the CommerceRuntime is referenced on the project."));
+                    }
+                }
+                else
+                {
+                    return null;
+                }
             }
 
             string _namespace = requestType.ContainingNamespace.ToString();

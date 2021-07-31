@@ -8,6 +8,7 @@ using Handyman.Types;
 using Handyman.Errors;
 using Handyman.Comparers;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace Handyman.DocumentAnalyzers
 {
@@ -17,10 +18,12 @@ namespace Handyman.DocumentAnalyzers
     public sealed class RequestResponseTypeAnalyzer
     {
         private readonly AnalysisContext context;
+        private readonly ILogger logger;
 
         public RequestResponseTypeAnalyzer(AnalysisContext context)
         {
             this.context = context;
+            this.logger = context.NewLogger<RequestResponseTypeAnalyzer>();
         }
 
         /// <summary>
@@ -79,9 +82,13 @@ namespace Handyman.DocumentAnalyzers
             // for each location, analyze the code and see if it is a request handler
             var requestHandlersTasks = locations.Select(async l =>
             {
-                var context = await contextFactory.CreateContextFor(l.Document, cancellationToken);
-                var analyzer = new RequestHandlerAnalyzer(context);
-                return analyzer.TryGetRequestHandlerFromSyntaxTree(l.Location.SourceSpan, cancellationToken);
+                var context = await contextFactory.TryCreateContextFor(l.Document, cancellationToken);
+                if (context != null)
+                {
+                    var analyzer = new RequestHandlerAnalyzer(context);
+                    return analyzer.TryGetRequestHandlerFromSyntaxTree(l.Location.SourceSpan, cancellationToken);
+                }
+                return null;
             }).ToArray();
 
             await Task.WhenAll(requestHandlersTasks);
@@ -102,7 +109,18 @@ namespace Handyman.DocumentAnalyzers
                 return null;
             }
 
-            var requestHandlerAnalysisContext = await contextFactory.CreateContextFor(requestHandler.Document, cancellationToken);
+            AnalysisContext requestHandlerAnalysisContext;
+            try
+            {
+                requestHandlerAnalysisContext = await contextFactory.CreateContextFor(requestHandler.Document, cancellationToken);
+            }
+            catch (HandymanErrorException exception)
+            {
+                // can't resolve context, nothing to do
+                this.logger.LogWarning("Couldn't resolve context for document {document} on {project}. Request implementation on this document will be skipped. {exception}", requestHandler.Document.Name, requestHandler.Document.Project.Name, exception);
+                return null;
+            }
+
             var requestLocations = RequestHandlerAnalyzer.FindRequestUseLocations(requestHandler, requestHandler.ExecuteMethodSyntax, requestHandlerAnalysisContext, cancellationToken);
 
             // because requestLocation.TypeSymbol can be on a different compilation than info.Type
@@ -132,14 +150,14 @@ namespace Handyman.DocumentAnalyzers
 
             if (info.Type == null)
             {
-                throw new HandymanErrorException(new Error("NotAType", "The selected token is not a type. Make sure you have selected a type and you have no compilation error."));
+                throw new HandymanErrorException(new Error(Error.ErrorCode.NotAType, "The selected token is not a type. Make sure you have selected a type and you have no compilation error."));
             }
 
             var requestType = this.ResolveRequestFromDeclaringType(info.Type);
 
             if (requestType == null)
             {
-                throw new HandymanErrorException(new Error("NotARequestType", $"The selected type '{info.Type.Name}' does not implement contract of a Request type."));
+                throw new HandymanErrorException(new Error(Error.ErrorCode.NotARequestType, $"The selected type '{info.Type.Name}' does not implement contract of a Request type."));
             }
 
             return requestType;

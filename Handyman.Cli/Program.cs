@@ -12,22 +12,33 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HandymanCmd
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             string path = args[0];
             string projectName = args.Skip(1).FirstOrDefault();
             string documentName = args.Skip(2).FirstOrDefault();
             MSBuildLocator.RegisterDefaults();
 
-            DoWork(path, projectName, documentName).GetAwaiter().GetResult();
+            var services = new ServiceCollection();
+            services.AddLogging(loggingBuilder => {
+                loggingBuilder.SetMinimumLevel(LogLevel.Trace);
+                loggingBuilder.AddConsole();
+            });
+            using (ServiceProvider serviceProvider = services.BuildServiceProvider())
+            {
+                await DoWork(serviceProvider.GetService<ILoggerFactory>(), path, projectName, documentName);
+            }
         }
 
-        private static async Task DoWork(string path, string projectName, string documentName)
+        private static async Task DoWork(ILoggerFactory loggerFactory, string path, string projectName, string documentName)
         {
             Stopwatch stopWatch = new Stopwatch();
             Console.Write($"Creating workspace");
@@ -70,7 +81,7 @@ namespace HandymanCmd
 
             Console.WriteLine($"Starting analysis");
             stopWatch.Restart();
-            var factory = new AnalysisContextFactory();
+            var factory = new AnalysisContextFactory(loggerFactory);
 
             foreach (var document in project.Documents)
             {
