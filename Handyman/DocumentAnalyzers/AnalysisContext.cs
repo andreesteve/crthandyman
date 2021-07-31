@@ -14,14 +14,6 @@ namespace Handyman.DocumentAnalyzers
     /// </summary>
     public class AnalysisContext
     {
-        public AnalysisContext(Document document, SemanticModel semanticModel, SyntaxNode syntaxRoot, CommerceRuntimeReference commerceRuntimeReference)
-        {
-            this.Document = document;
-            this.SyntaxRoot = syntaxRoot;
-            this.SemanticModel = semanticModel;
-            this.CommerceRuntimeReference = commerceRuntimeReference;
-        }
-
         public Document Document { get; private set; }
 
         public SyntaxNode SyntaxRoot { get; private set; }
@@ -30,13 +22,22 @@ namespace Handyman.DocumentAnalyzers
 
         public CommerceRuntimeReference CommerceRuntimeReference { get; private set; }
 
-        public static async Task<AnalysisContext> Create(Document document, CancellationToken cancellationToken, CommerceRuntimeReference reference = null)
+        public TypeCache TypeCache { get; set; }
+
+        public static async Task<AnalysisContext> Create(Document document, CancellationToken cancellationToken, TypeCache typeCache, CommerceRuntimeReference reference = null)
         {
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
             var syntaxRoot = await semanticModel.SyntaxTree.GetRootAsync(cancellationToken);
             reference = reference ?? await new CommerceRuntimeReferenceAnalyzer(document.Project).Find(cancellationToken);
 
-            return new AnalysisContext(document, semanticModel, syntaxRoot, reference);
+            return new AnalysisContext()
+            {
+                Document = document,
+                SemanticModel = semanticModel,
+                SyntaxRoot = syntaxRoot,
+                CommerceRuntimeReference = reference,
+                TypeCache = typeCache
+            };
         }
     }
 }

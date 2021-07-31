@@ -32,7 +32,8 @@ namespace Handyman.DocumentAnalyzers
                 projectCache = new ProjectCache()
                 {
                     Compilation = compilation,
-                    CommerceRuntimeReference = reference
+                    CommerceRuntimeReference = reference,
+                    TypeCache = new TypeCache(),
                 };
                 this.projects.TryAdd(document.Project, projectCache);
             }
@@ -40,7 +41,7 @@ namespace Handyman.DocumentAnalyzers
             // this caches multiple uses of document
             if (!documents.TryGetValue(document, out AnalysisContext context))
             {
-                context = await AnalysisContext.Create(document, cancellationToken, projectCache.CommerceRuntimeReference);
+                context = await AnalysisContext.Create(document, cancellationToken, projectCache.TypeCache, projectCache.CommerceRuntimeReference);
                 documents.TryAdd(document, context);
             }
 
@@ -52,6 +53,8 @@ namespace Handyman.DocumentAnalyzers
             public Compilation Compilation { get; set; }
 
             public CommerceRuntimeReference CommerceRuntimeReference { get; set; }
+
+            public TypeCache TypeCache { get; set; }
         }
     }
 }

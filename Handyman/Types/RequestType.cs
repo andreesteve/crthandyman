@@ -15,14 +15,32 @@ namespace Handyman.Types
     /// </summary>
     public class RequestType : MemberedBaseType
     {
-        public RequestType(string name, IEnumerable<Member> members, string documentation, string baseClassFQN)
-            : base(name, baseClassFQN, members, documentation)
+        public RequestType(ITypeSymbol declaringType, IEnumerable<Member> members, string documentation, string baseClassFQN)
+            // FIXME declaring type is mandatory
+            : base(declaringType?.Name, baseClassFQN, members, documentation)
         {
         }
+
+        public ITypeSymbol DeclaringType { get; internal set; }
 
         public override string ToString()
         {
             return this.Name;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is RequestType request
+                && (
+                    obj == this
+                    || this.DeclaringType.Equals(request.DeclaringType, SymbolEqualityComparer.Default)
+                );
+        }
+
+        // override object.GetHashCode
+        public override int GetHashCode()
+        {
+            return this.DeclaringType.GetHashCode();
         }
     }
 }

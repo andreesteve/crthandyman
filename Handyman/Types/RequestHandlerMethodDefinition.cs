@@ -29,7 +29,13 @@ namespace Handyman.Types
 
         public ResponseType ResponseType { get; private set; }
 
-        public static RequestHandlerMethodDefinition TryParse(IMethodSymbol method, CommerceRuntimeReference reference)
+        /// <summary>
+        /// Given any method, tries to extract method parameters as request definition and return type as response definition.
+        /// </summary>
+        /// <param name="method">The method symbol to be used.</param>
+        /// <param name="reference">The runtime reference.</param>
+        /// <returns>A way to represent the method with request/response entires.</returns>
+        public static RequestHandlerMethodDefinition TryGenerateHandlerMethodDefinitionFromMethod(IMethodSymbol method, CommerceRuntimeReference reference)
         {
             // method needs to belong to class
             if (method.ContainingSymbol != null)
@@ -42,7 +48,9 @@ namespace Handyman.Types
                     .Where(p => p.RefKind == RefKind.None)
                     .Select(p => CreateMemberFromParameter(p, doc));
 
-                var requestType = new RequestType(method.Name + "Request", requetMembers, doc.Summary, reference.RequestBaseClassFqn);
+                // HACY: method is not the right type
+                var requestType = new RequestType(null, requetMembers, doc.Summary, reference.RequestBaseClassFqn);
+                requestType.Name = method.Name + "Request";
 
                 // RESPONSE
                 var responseMembers = method.Parameters
@@ -57,9 +65,16 @@ namespace Handyman.Types
 
                 string responseDocumentation = $"The response for <see cref=\"{{{requestType.Name}}}\" />.";
 
-                ResponseType responseType = responseMembers.Any()
-                    ? new ResponseType(method.Name + "Response", responseMembers, responseDocumentation, reference.ResponseBaseClassFqn)
-                    : reference.VoidResponse;
+                ResponseType responseType;
+                if (responseMembers.Any())
+                {
+                    responseType = new ResponseType(null, responseMembers, responseDocumentation, reference.ResponseBaseClassFqn);
+                    responseType.Name = method.Name + "Response";
+                }
+                else
+                {
+                    responseType = reference.VoidResponse;
+                }
 
                 return new RequestHandlerMethodDefinition(requestType, responseType, method);
             }

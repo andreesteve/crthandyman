@@ -26,6 +26,7 @@ namespace Handyman.DocumentAnalyzers
         /// <returns>All instances of request executions, or an empty collection if none found.</returns>
         public IEnumerable<RequestExecution> FindAll(CancellationToken cancellationToken = default)
         {
+            var requestAnalyzer = new RequestResponseTypeAnalyzer(this.context);
             // search in the syntax tree for any method calls in which the methods ends with "Execute"
             foreach (var methodInvokationNode in this.context.SyntaxRoot.DescendantNodes().OfType<InvocationExpressionSyntax>())
             {
@@ -47,8 +48,7 @@ namespace Handyman.DocumentAnalyzers
                             var requestConcreteType = this.context.SemanticModel.GetTypeInfo(requestArgumentToken).Type;
                             if (requestConcreteType != null)
                             {
-                                // TODO figure out how to unify this and cache it
-                                var requestType = new RequestType(requestConcreteType.Name, Enumerable.Empty<Member>(), string.Empty, this.context.CommerceRuntimeReference.RequestBaseClassFqn);
+                                var requestType = requestAnalyzer.ResolveRequestFromDeclaringType(requestConcreteType);
                                 yield return new RequestExecution(requestType, methodInvokationNode);
                             }
                         }

@@ -3,6 +3,9 @@ using Handyman.Generators;
 
 namespace Handyman.Types
 {
+    /// <summary>
+    /// Represents a member in a request/response.
+    /// </summary>
     public class Member
     {
         public Member(string name, ITypeSymbol type, string documentation = "", bool canWrite = false)

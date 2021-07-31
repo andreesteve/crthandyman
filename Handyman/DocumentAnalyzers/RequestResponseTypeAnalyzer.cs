@@ -22,6 +22,29 @@ namespace Handyman.DocumentAnalyzers
             this.context = context;
         }
 
+        /// <summary>
+        /// Given a type symbol for the declaration of a request, resolve a RequestType.
+        /// </summary>
+        /// <param name="declaringType">The type that declares the request.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        /// <returns>The request or null if declaring type is not a request.</returns>
+        public RequestType ResolveRequestFromDeclaringType(ITypeSymbol declaringType, CancellationToken cancellationToken = default)
+        {
+            if (!this.context.TypeCache.Requests.TryGetValue(declaringType, out RequestType request))
+            {
+                if (declaringType.IsDerivedFrom(this.context.CommerceRuntimeReference.RequestTypeSymbol))
+                {
+                    // TODO: parse members and documentation
+                    request = new RequestType(declaringType, Enumerable.Empty<Member>(), string.Empty, this.context.CommerceRuntimeReference.RequestBaseClassFqn);
+                }
+
+                // cache even negative cases to avoid reanalyzing
+                this.context.TypeCache.Requests.TryAdd(declaringType, request);
+            }
+
+            return request;
+        }
+
         public async Task<TypeLocation> FindImplementation(int tokenPosition, CancellationToken cancellationToken = default)
         {
             // TODO: handle class definition symbol
@@ -52,7 +75,7 @@ namespace Handyman.DocumentAnalyzers
             // we can perform some optizations (like filter out locations within same class)
 
             // for each request handler found, see if it implements the request we have
-            var requestHandler = requestHandlers.FirstOrDefault(h => h.DeclaredSupportedRequestTypes.Contains(info.Type, new ITypeSymbolEqualityComparer()));
+            var requestHandler = requestHandlers.FirstOrDefault(h => h.DeclaredSupportedRequestTypes.Any(request => request.DeclaringType.Equals(info.Type, SymbolEqualityComparer.Default)));
 
             if (requestHandler == null)
             {
@@ -60,7 +83,7 @@ namespace Handyman.DocumentAnalyzers
             }
 
             var requestHandlerAnalysisContext = await contextFactory.CreateContextFor(requestHandler.Document, cancellationToken);
-            var requestLocations = RequestHandlerAnalyzer.FindRequestImplementationLocations(requestHandler, requestHandlerAnalysisContext, cancellationToken);
+            var requestLocations = RequestHandlerAnalyzer.FindRequestUseLocations(requestHandler.ExecuteMethodSyntax, requestHandlerAnalysisContext, cancellationToken);
 
             // because requestLocation.TypeSymbol can be on a different compilation than info.Type
             // we cannot compare the objects directly

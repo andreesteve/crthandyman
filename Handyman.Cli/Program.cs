@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Handyman.DocumentAnalyzers;
 using Handyman.Errors;
 using Handyman.ProjectAnalyzers;
+using Handyman.Types;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -41,24 +42,10 @@ namespace HandymanCmd
                 Console.WriteLine($"Handling {document.Name}");
                 var context = await factory.CreateContextFor(document);
 
-                var syntaxTree = await document.GetSyntaxTreeAsync();
-                var textLength = (await syntaxTree.GetTextAsync()).Length;
-                var span = new TextSpan(textLength / 2, 1);
-
                 try
                 {
-                    foreach (var execution in new RequestExecutionAnalyzer(context).FindAll())
-                    {
-                        Console.WriteLine("    " + execution.ToString());
-                    }
-
                     var requestHandlerAnalyzer = new RequestHandlerAnalyzer(context);
-                    var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree(span);
-
-                    // var root = await syntaxTree.GetRootAsync();
-                    // root.DescendantNodesAndSelf()
-                    //     .Where(n => n is MethodDeclarationSyntax)
-                    //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
+                    var handler = requestHandlerAnalyzer.TryGetRequestHandlerFromSyntaxTree();
 
                     if (handler == null)
                     {
@@ -66,14 +53,30 @@ namespace HandymanCmd
                     }
                     else
                     {
-                        Console.WriteLine("   IS a handler");
+                        Console.WriteLine("   **** IS a handler ****");
                     }
+
+                    foreach (var execution in new RequestExecutionAnalyzer(context).FindAll())
+                    {
+                        Console.WriteLine("    " + execution.ToString());
+                    }
+
+                    // var root = await syntaxTree.GetRootAsync();
+                    // root.DescendantNodesAndSelf()
+                    //     .Where(n => n is MethodDeclarationSyntax)
+                    //     .Select(n => requestHandlerAnalyzer.TryGetHandlerDefinition )
+
+
                 }
                 catch (HandymanErrorException exception)
                 {
                     Console.WriteLine("err: " + exception.ToString());
                 }
             }
+        }
+
+        private static async Task GetRequestDependencyTree(RequestHandlerDefinition handler)
+        {
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Handyman.Types
 {
@@ -9,32 +10,30 @@ namespace Handyman.Types
     /// <remarks>A request handler may handle one or more request types.</remarks>
     public sealed class RequestHandlerDefinition
     {
-        public RequestHandlerDefinition(ITypeSymbol classType, ITypeSymbol handlerInterface, Document document, IEnumerable<ITypeSymbol> declaredSupportedRequestTypes)
-        {
-            this.ClassType = classType;
-            this.HandlerInterface = handlerInterface;
-            this.Document = document;
-            this.DeclaredSupportedRequestTypes = declaredSupportedRequestTypes;
-        }
-
         /// <summary>
         /// Gets the type of the class that implements the request handler.
         /// </summary>
-        public ITypeSymbol ClassType { get; private set; }
+        public ITypeSymbol ClassType { get; internal set; }
 
         /// <summary>
         /// Gets the type of the interface that the request handler implements.
         /// </summary>
-        public ITypeSymbol HandlerInterface { get; private set; }
+        public ITypeSymbol HandlerInterface { get; internal set; }
 
         /// <summary>
         /// Gets the document that contains this handler definition.
         /// </summary>
-        public Document Document { get; private set; }
+        public Document Document { get; internal set; }
 
         /// <summary>
         /// Gets a collection of request types that the implementation claims to support.
         /// </summary>
-        public IEnumerable<ITypeSymbol> DeclaredSupportedRequestTypes { get; private set; }
+        public IEnumerable<RequestType> DeclaredSupportedRequestTypes { get; internal set; }
+
+        /// <summary>
+        /// Gets the syntax declarion for the Execute method of this handler.
+        /// </summary>
+        /// <value></value>
+        public MethodDeclarationSyntax ExecuteMethodSyntax { get; internal set; }
     }
 }
