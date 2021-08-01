@@ -1,5 +1,7 @@
 # Commerce Runtime Handyman
 
+![](./icon.png)
+
 A Visual Studio extension to automate code authoring for the [Microsoft Dynamics 365 Commerce Runtime](https://docs.microsoft.com/en-us/dynamics365/commerce/dev-itpro/commerce-runtime-overview) framework.
 
 Please report any issues [here](https://github.com/andreesteve/crthandyman/issues).
